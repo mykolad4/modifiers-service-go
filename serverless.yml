@@ -1,0 +1,56 @@
+service: modifier-api
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: go1.x
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        Fn::GetAtt:
+          - modifierTable
+          - Arn
+  environment:
+    DISABLE_SIGNAL_HANDLERS: true
+    DYNAMODB_TABLE: modifierTable
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  handler:
+    handler: bin/handler
+    events:
+      - http:
+          path: /graphql
+          method: POST
+
+resources:
+  Resources:
+    modifierTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: modifierTable
+        AttributeDefinitions:
+          - AttributeName: merchant
+            AttributeType: S
+          - AttributeName: product
+            AttributeType: S
+        KeySchema:
+          - AttributeName: merchant
+            KeyType: HASH
+          - AttributeName: product
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
